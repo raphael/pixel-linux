@@ -40,16 +40,17 @@ if [ ! -d $rootfs ]
 then
   mkdir $rootfs
 fi
-if [ -e /home/chronos/user/$tar_file_name]
+if [ -e /home/chronos/user/Download/$tar_file_name]
 then
-  cp /home/chronos/user/$tar_file_name .
+  cp /home/chronos/user/Download/$tar_file_name .
 fi
 if [ ! -e $tar_file_name ]
 then
-  wget -O - $tar_file | tar xzp -C $rootfs/
-else
-  tar xzpf $tar_file_name -C $rootfs/
+  wget -O - $tar_file
+  cp $tar_file /home/chronos/user/Download
 fi
+tar xzpf $tar_file_name -C $rootfs/
+
 
 cp scripts/install-ubuntu.sh $rootfs
 

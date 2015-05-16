@@ -83,7 +83,7 @@ grub-mkconfig -o /boot/grub/grub.cfg
 grub-install ${target_disk} --force
 useradd -m user -s /bin/bash
 echo user | echo user:user | chpasswd
-usermod -a -G adm,cdrom,lpadmin,sudo,dip,plugdev user
+usermod -a -G adm,cdrom,sudo,dip,plugdev user
 " > third_stage
 chmod a+x third_stage
 

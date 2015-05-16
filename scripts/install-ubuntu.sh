@@ -6,19 +6,19 @@ root_partition="${target_disk}7"
 boot_partition="${target_disk}6"
 
 apt-get update
-#apt-get install -y cryptsetup rsync
+apt-get install -y cryptsetup rsync
 
 # Create encrypted root.
-#echo
-#echo "Please enter the password for full disc encryption."
-#cryptsetup luksFormat -q --cipher aes-xts-plain64 --key-size 512 --hash SHA512 --iter-time 20000 $root_partition
+echo
+echo "Please enter the password for full disc encryption."
+cryptsetup luksFormat -q --cipher aes-xts-plain64 --key-size 512 --hash SHA512 --iter-time 20000 $root_partition
 
-#echo
-#echo "Created encrypted disk, provide the password again to open it."
-#cryptsetup luksOpen $root_partition root
+echo
+echo "Created encrypted disk, provide the password again to open it."
+cryptsetup luksOpen $root_partition root
 
 echo "Creating file system"
-mkfs.ext4 /dev/root
+mkfs.ext4 /dev/mapper/root
 
 echo "Creating boot file system"
 mkfs.ext2 $boot_partition
@@ -27,7 +27,7 @@ rootfs="/tmp/rootfs"
 
 mkdir -p $rootfs
 
-mount /dev/root $rootfs
+mount /dev/mapper/root $rootfs
 mkdir -p $rootfs/boot
 mount $boot_partition $rootfs/boot
 
@@ -52,10 +52,10 @@ echo "Root UUID $rootuuid"
 
 cd $rootfs
 
-#echo "Creating crypttab ..."
-#cat > etc/crypttab << EOF
-#root UUID=$rootuuid none  luks,discard
-#EOF
+echo "Creating crypttab ..."
+cat > etc/crypttab << EOF
+root UUID=$rootuuid none  luks,discard
+EOF
 
 echo "Creating fstab ..."
 cat > etc/fstab << EOF
@@ -104,8 +104,8 @@ sleep 2
 
 umount -l $rootfs
 
-#sleep 2
+sleep 2
 
-#cryptsetup luksClose root
+cryptsetup luksClose root
 
 echo "Installation complete."

@@ -46,7 +46,7 @@ then
   wget -O - $tar_file | tar xzp -C $rootfs/
 else
   rm -rf $rootfs
-  tar xzp $tar_file_name -C $rootfs
+  tar xzpf $tar_file_name -C $rootfs
 fi
 
 cp scripts/install-ubuntu.sh $rootfs

@@ -40,14 +40,14 @@ if [ ! -d $rootfs ]
 then
   mkdir $rootfs
 fi
-if [ -e /home/chronos/user/Download/$tar_file_name]
+if [ -e /home/chronos/user/Downloads/$tar_file_name]
 then
-  cp /home/chronos/user/Download/$tar_file_name .
+  cp /home/chronos/user/Downloads/$tar_file_name .
 fi
 if [ ! -e $tar_file_name ]
 then
   wget -O - $tar_file
-  cp $tar_file_name /home/chronos/user/Download
+  cp $tar_file_name /home/chronos/user/Downloads
 fi
 tar xzpf $tar_file_name -C $rootfs/
 

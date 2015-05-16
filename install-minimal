@@ -37,7 +37,13 @@ then
   mkdir $rootfs
 fi
 
-wget -O - $tar_file | tar xzp -C $rootfs/
+if [ ! -e $tar_file_name ]
+then
+  wget -O - $tar_file | tar xzp -C $rootfs/
+else
+  rm -rf $rootfs
+  tar xzp $tar_file_name -C $rootfs
+fi
 
 cp scripts/install-ubuntu.sh $rootfs
 

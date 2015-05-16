@@ -42,7 +42,7 @@ wget -O - $tar_file | tar xzp -C $rootfs/
 cp scripts/install-ubuntu.sh $rootfs
 
 cd $rootfs
-cat 'nameserver "8.8.8.8"' > etc/resolv.conf
+echo 'nameserver "8.8.8.8"' > etc/resolv.conf
 
 mount -o bind /proc $rootfs/proc
 mount -o bind /dev $rootfs/dev

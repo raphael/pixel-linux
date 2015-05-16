@@ -6,7 +6,7 @@ root_partition="${target_disk}7"
 boot_partition="${target_disk}6"
 
 apt-get update
-apt-get install -y cryptsetup rsync
+#apt-get install -y cryptsetup rsync
 
 # Create encrypted root.
 #echo
@@ -18,7 +18,7 @@ apt-get install -y cryptsetup rsync
 #cryptsetup luksOpen $root_partition root
 
 echo "Creating file system"
-mkfs.ext4 /dev/mapper/root
+mkfs.ext4 /dev/root
 
 echo "Creating boot file system"
 mkfs.ext2 $boot_partition
@@ -27,7 +27,7 @@ rootfs="/tmp/rootfs"
 
 mkdir -p $rootfs
 
-mount /dev/mapper/root $rootfs
+mount /dev/root $rootfs
 mkdir -p $rootfs/boot
 mount $boot_partition $rootfs/boot
 
@@ -59,9 +59,9 @@ cd $rootfs
 
 echo "Creating fstab ..."
 cat > etc/fstab << EOF
-/dev/mapper/root  /       ext4  errors=remount-ro       0 1
-UUID=$bootuuid    /boot   ext2  defaults                0 2
-tmpfs             /tmp    tmpfs nodev,nosuid,mode=1777  0 0
+/dev/root       /     ext4  errors=remount-ro,discard 0 1
+UUID=$bootuuid  /boot ext2  defaults                  0 2
+tmpfs           /tmp  tmpfs nodev,nosuid,mode=1777    0 0
 EOF
 
 echo "chromia" > etc/hostname

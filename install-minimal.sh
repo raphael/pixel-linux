@@ -1,88 +1,111 @@
-#!/bin/bash
+export DEBIAN_FRONTEND=noninteractive
+sh -c "echo -e 'LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8' > /etc/default/locale"
 
-target_disk=""
-ubuntu_arch="amd64"
-ubuntu_metapackage="ubuntu-minimal"
-ubuntu_version="latest"
+target_disk="/dev/sda"
+root_partition="${target_disk}7"
+boot_partition="${target_disk}6"
 
-target_disk="`rootdev -d -s`"
-echo "Target disk is $target_disk ..."
+apt-get update
+apt-get install -y cryptsetup rsync
 
-if [ "$ubuntu_version" = "lts" ]
-then
-  ubuntu_version=`wget --quiet -O - http://changelogs.ubuntu.com/meta-release | grep "^Version:" | grep "LTS" | tail -1 | sed -r 's/^Version: ([^ ]+)( LTS)?$/\1/'`
-  tar_file_name="ubuntu-core-$ubuntu_version-core-$ubuntu_arch.tar.gz"
-  tar_file="http://cdimage.ubuntu.com/ubuntu-core/releases/$ubuntu_version/release/$tar_file_name"
-elif [ "$ubuntu_version" = "latest" ]
-then
-  ubuntu_version=`wget --quiet -O - http://changelogs.ubuntu.com/meta-release | grep "^Version: " | tail -1 | sed -r 's/^Version: ([^ ]+)( LTS)?$/\1/'`
-  tar_file_name="ubuntu-core-$ubuntu_version-core-$ubuntu_arch.tar.gz"
-  tar_file="http://cdimage.ubuntu.com/ubuntu-core/releases/$ubuntu_version/release/$tar_file_name"
-elif [ $ubuntu_version = "dev" ]
-then
-  ubuntu_version=`wget --quiet -O - http://changelogs.ubuntu.com/meta-release-development | grep "^Version: " | tail -1 | sed -r 's/^Version: ([^ ]+)( LTS)?$/\1/'`
-  ubuntu_animal=`wget --quiet -O - http://changelogs.ubuntu.com/meta-release-development | grep "^Dist: " | tail -1 | sed -r 's/^Dist: (.*)$/\1/'`
-  tar_file_name="$ubuntu_animal-core-$ubuntu_arch.tar.gz"
-  tar_file="http://cdimage.ubuntu.com/ubuntu-core/daily/current/$tar_file_name"
-else
-  tar_file_name="ubuntu-core-$ubuntu_version-core-$ubuntu_arch.tar.gz"
-  tar_file="http://cdimage.ubuntu.com/ubuntu-core/releases/$ubuntu_version/release/$tar_file_name"
-fi
+# Create encrypted root.
+echo
+echo "Please enter the password for full disc encryption."
+cryptsetup luksFormat -q --cipher aes-xts-plain64 --key-size 512 --hash SHA512 --iter-time 20000 $root_partition
 
-echo "Installing Ubuntu ${ubuntu_version} with metapackage ${ubuntu_metapackage}"
-echo "Installing Ubuntu Arch: $ubuntu_arch"
+echo
+echo "Created encrypted disk, provide the password again to open it."
+cryptsetup luksOpen $root_partition root
 
-read -p "Press [Enter] to continue..."
+echo "Creating file system"
+mkfs.ext4 /dev/mapper/root
 
-rootfs="/tmp/ubuntu-temp-root"
+echo "Creating boot file system"
+mkfs.ext2 $boot_partition
 
-if [ ! -d $rootfs ]
-then
-  mkdir $rootfs
-fi
-if [ -e /home/chronos/user/$tar_file_name]
-then
-  cp /home/chronos/user/$tar_file_name .
-fi
-if [ ! -e $tar_file_name ]
-then
-  wget -O - $tar_file | tar xzp -C $rootfs/
-else
-  tar xzpf $tar_file_name -C $rootfs/
-fi
+rootfs="/tmp/rootfs"
 
-cp scripts/install-ubuntu.sh $rootfs
+mkdir -p $rootfs
 
-cd $rootfs
-echo 'nameserver 8.8.8.8' > etc/resolv.conf
+mount /dev/mapper/root $rootfs
+mkdir -p $rootfs/boot
+mount $boot_partition $rootfs/boot
+
+echo "Syncing minimal system ..."
+rsync -rax --exclude="/proc" --exclude="/dev" --exclude="/sys" --exclude="/tmp" --exclude="/install-ubuntu.sh" / $rootfs/
+
+mkdir $rootfs/proc
+mkdir $rootfs/dev
+mkdir $rootfs/sys
+mkdir $rootfs/tmp
 
 mount -o bind /proc $rootfs/proc
 mount -o bind /dev $rootfs/dev
 mount -o bind /dev/pts $rootfs/dev/pts
 mount -o bind /sys $rootfs/sys
 
-cat > usr/sbin/policy-rc.d << EOF
-#!/bin/sh
-exit 101
+bootuuid=`blkid -s UUID -o value ${boot_partition}`
+echo "Boot UUID $bootuuid"
+
+rootuuid=`blkid -s UUID -o value ${root_partition}`
+echo "Root UUID $rootuuid"
+
+cd $rootfs
+
+echo "Creating crypttab ..."
+cat > etc/crypttab << EOF
+root UUID=$rootuuid none  luks,discard
 EOF
-chmod a+x usr/sbin/policy-rc.d
 
-# Make /tmp location usable for chroot.
-mount -o remount exec,suid,dev /tmp
+echo "Creating fstab ..."
+cat > etc/fstab << EOF
+/dev/mapper/root  /     ext4  errors=remount-ro,discard 0 1
+UUID=$bootuuid    /boot ext2  defaults                  0 2
+tmpfs             /tmp  tmpfs nodev,nosuid,mode=1777    0 0
+EOF
 
-# Chroot.
-chmod a+x install-ubuntu.sh
-chroot $rootfs /bin/bash -c /install-ubuntu.sh
+echo "chromia" > etc/hostname
 
-# Make sure everything can boot.
-crossystem dev_boot_legacy=1 dev_boot_signed_only=1
+echo -e "export DEBIAN_FRONTEND=noninteractive
+apt-get -y update
+apt-get -y dist-upgrade
+apt-get -y install ubuntu-minimal
+apt-get -y install wget
+apt-get -y install software-properties-common
+add-apt-repository main
+add-apt-repository universe
+add-apt-repository restricted
+add-apt-repository multiverse
+apt-get update
+apt-get -y install linux-generic
+apt-get -y install grub-pc
+grub-mkconfig -o /boot/grub/grub.cfg
+grub-install ${target_disk} --force
+useradd -m user -s /bin/bash
+echo user | echo user:user | chpasswd
+usermod -a -G adm,cdrom,lpadmin,sudo,dip,plugdev user
+" > third_stage
+chmod a+x third_stage
 
-echo -e "
-Installation is complete! On reboot at the dev mode screen, you can press
-CTRL+L to boot Ubuntu or CTRL+D to boot Chrome OS. The Ubuntu login is:
+chroot $rootfs /bin/bash -c /third_stage
 
-  Username:  user
-  Password:  user
+echo "Check the created system now."
+bash
 
-Enjoy!
-"
+echo "Cleaning up ..."
+rm -f usr/sbin/policy-rc.d
+umount -l $boot_partition
+umount -l $rootfs/proc
+umount -l $rootfs/dev/pts
+umount -l $rootfs/dev
+umount -l $rootfs/sys
+
+sleep 2
+
+umount -l $root_partition
+
+sleep 2
+
+cryptsetup luksClose root
+
+echo "Installation complete."

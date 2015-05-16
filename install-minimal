@@ -42,14 +42,12 @@ wget -O - $tar_file | tar xzp -C $rootfs/
 cp scripts/install-ubuntu.sh $rootfs
 
 cd $rootfs
-cp -f /etc/resolv.conf etc/
+cat 'nameserver "8.8.8.8"' > etc/resolv.conf
 
 mount -o bind /proc $rootfs/proc
 mount -o bind /dev $rootfs/dev
 mount -o bind /dev/pts $rootfs/dev/pts
 mount -o bind /sys $rootfs/sys
-
-sed -i 's/http:\/\/archive./http:\/\/de.archive./g' etc/apt/sources.list
 
 cat > usr/sbin/policy-rc.d << EOF
 #!/bin/sh

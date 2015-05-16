@@ -47,7 +47,7 @@ fi
 if [ ! -e $tar_file_name ]
 then
   wget -O - $tar_file
-  cp $tar_file /home/chronos/user/Download
+  cp $tar_file_name /home/chronos/user/Download
 fi
 tar xzpf $tar_file_name -C $rootfs/
 

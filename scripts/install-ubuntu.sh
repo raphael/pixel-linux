@@ -8,15 +8,15 @@ apt-get update
 apt-get install -y cryptsetup rsync
 
 # Create encrypted root.
-echo
-echo "Please enter the password for full disc encryption."
-cryptsetup luksFormat -q --cipher aes-xts-plain64 --key-size 512 --hash SHA512 --iter-time 20000 $root_partition
+#echo
+#echo "Please enter the password for full disc encryption."
+#cryptsetup luksFormat -q --cipher aes-xts-plain64 --key-size 512 --hash SHA512 --iter-time 20000 $root_partition
 
-echo
-echo "Created encrypted disk, provide the password again to open it."
-cryptsetup luksOpen $root_partition root
+#echo
+#echo "Created encrypted disk, provide the password again to open it."
+#cryptsetup luksOpen $root_partition root
 
-echo "Creating file system in encrypted disk"
+echo "Creating file system"
 mkfs.ext4 /dev/mapper/root
 
 echo "Creating boot file system"
@@ -30,8 +30,8 @@ mount /dev/mapper/root $rootfs
 mkdir -p $rootfs/boot
 mount $boot_partition $rootfs/boot
 
-echo "Syncing minimal system to encrypted disc ..."
-rsync -rax --exclude="/proc" --exclude="/dev" --exclude="/sys" --exclude="/tmp" --exclude="/install-ubuntu.sh" --exclude="/etc/resolv.conf" / $rootfs/
+echo "Syncing minimal system ..."
+rsync -rax --exclude="/proc" --exclude="/dev" --exclude="/sys" --exclude="/tmp" --exclude="/install-ubuntu.sh" / $rootfs/
 
 mkdir $rootfs/proc
 mkdir $rootfs/dev
@@ -51,10 +51,10 @@ echo "Root UUID $rootuuid"
 
 cd $rootfs
 
-echo "Creating crypttab ..."
-cat > etc/crypttab << EOF
-root UUID=$rootuuid none  luks,discard
-EOF
+#echo "Creating crypttab ..."
+#cat > etc/crypttab << EOF
+#root UUID=$rootuuid none  luks,discard
+#EOF
 
 echo "Creating fstab ..."
 cat > etc/fstab << EOF
@@ -63,7 +63,7 @@ UUID=$bootuuid    /boot   ext2  defaults                0 2
 tmpfs             /tmp    tmpfs nodev,nosuid,mode=1777  0 0
 EOF
 
-echo "ubuntu" > etc/hostname
+echo "chromia" > etc/hostname
 
 echo -e "export DEBIAN_FRONTEND=noninteractive
 apt-get -y update
@@ -103,8 +103,8 @@ sleep 2
 
 umount -l $rootfs
 
-sleep 2
+#sleep 2
 
-cryptsetup luksClose root
+#cryptsetup luksClose root
 
 echo "Installation complete."

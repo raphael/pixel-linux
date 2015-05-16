@@ -1,4 +1,5 @@
 export DEBIAN_FRONTEND=noninteractive
+sh -c "echo -e 'LANG=en_US.UTF-8\nLC_ALL=en_US.UTF-8' > /etc/default/locale"
 
 target_disk="/dev/sda"
 root_partition="${target_disk}7"
